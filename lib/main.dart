@@ -19,13 +19,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
 
   TextEditingController todoTxtController = TextEditingController();
-  
+
   List<String> todos = [];
+
+  int? editIndex;
 
   @override
   void initState() {
     super.initState();
-    loadTodos();  // Load todos when the app starts
+    loadTodos(); // Load todos when the app starts
   }
 
   // Load todos from shared preferences
@@ -53,13 +55,20 @@ class _HomeScreenState extends State<HomeScreen> {
     saveTodos();
   }
 
+  void editTodo(int index) {
+    setState(() {
+      todoTxtController.text = todos[index];
+      editIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Todo App', style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold
+            color: Colors.white,
+            fontWeight: FontWeight.bold
         ),
         ),
         backgroundColor: Colors.blue,
@@ -67,17 +76,18 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-           Expanded(
-               child: ListView.builder(
-                 itemCount: todos.length,
-                   itemBuilder: (context, index) {
-                     return Todo(
-                         text: todos[index],
-                         onDelete: () => deleteTodoAtIndex(index)
-                     );
-                   }
-               )
-           ),
+          Expanded(
+              child: ListView.builder(
+                  itemCount: todos.length,
+                  itemBuilder: (context, index) {
+                    return Todo(
+                        text: todos[index],
+                        onDelete: () => deleteTodoAtIndex(index),
+                      onEdit: () => editTodo(index),
+                    );
+                  }
+              )
+          ),
           Padding(
             padding: const EdgeInsets.all(10.0),
             child: Row(
@@ -88,30 +98,44 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: const InputDecoration(
                         labelText: 'Enter task',
                         labelStyle: TextStyle(
-                          color: Colors.blue
+                            color: Colors.blue
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.blue, width: 2.0),
+                          borderSide: BorderSide(
+                              color: Colors.blue, width: 2.0),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.blue, width: 2.0),
+                          borderSide: BorderSide(
+                              color: Colors.blue, width: 2.0),
                         ),
                       ),
                     )
                 ),
                 const SizedBox(width: 30),
                 FilledButton(
-                    onPressed: () {
-                      setState(() {
+                  onPressed: () {
+                    if (todoTxtController.text.isEmpty) {
+                      return;
+                    }
+
+                    setState(() {
+                      if (editIndex == null) {
                         todos.add(todoTxtController.text);
-                        saveTodos();
-                        todoTxtController.clear();
-                      });
-                    },
+                      } else {
+                        todos[editIndex!] = todoTxtController.text;
+                        editIndex = null;
+                      }
+                      saveTodos();
+                      todoTxtController.clear();
+                    });
+                  },
                   style: ButtonStyle(
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blue),
+                    backgroundColor: WidgetStateProperty.all<Color>(
+                        Colors.blue),
                   ),
-                    child: const Text('Add'),
+                  child: Text(
+                    editIndex == null ? 'Add' : 'Update'
+                  ),
                 )
               ],
             ),
@@ -126,34 +150,45 @@ class Todo extends StatelessWidget {
 
   final String text;
   final VoidCallback onDelete;
+  final VoidCallback onEdit;
 
-  const Todo({super.key, required this.text, required this.onDelete});
+  const Todo({
+    super.key,
+    required this.text,
+    required this.onDelete,
+    required this.onEdit
+  });
 
   @override
   Widget build(BuildContext context) {
-      return Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(text,
-                style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(text,
+              style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold
               ),
-                softWrap: true,
-                maxLines: null,
-                overflow: TextOverflow.visible,
-              ),
+              softWrap: true,
+              maxLines: null,
+              overflow: TextOverflow.visible,
             ),
-            IconButton(
-                onPressed: onDelete,
-                icon: const Icon(Icons.delete),
-              color: Colors.blue,
-            )
-          ],
-        ),
-      );
+          ),
+          IconButton(
+            onPressed: onEdit,
+            icon: const Icon(Icons.edit),
+            color: Colors.blue,
+          ),
+          IconButton(
+            onPressed: onDelete,
+            icon: const Icon(Icons.delete),
+            color: Colors.blue,
+          )
+        ],
+      ),
+    );
   }
 }
 
